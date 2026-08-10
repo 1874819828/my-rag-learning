@@ -29,9 +29,17 @@ class Settings(BaseSettings):
     HYBRID_SEARCH_ENABLED: bool = os.getenv("HYBRID_SEARCH_ENABLED", "true").lower() == "true"
     VECTOR_WEIGHT: float = float(os.getenv("VECTOR_WEIGHT", "0.6"))
     KEYWORD_WEIGHT: float = float(os.getenv("KEYWORD_WEIGHT", "0.4"))
+
+    # Rerank 精排配置（方案1+2+3）
+    RERANK_ENABLED: bool = os.getenv("RERANK_ENABLED", "true").lower() == "true"
+    RERANK_MODEL: str = os.getenv("RERANK_MODEL", "BAAI/bge-reranker-base")
+    RECALL_TOP_K: int = int(os.getenv("RECALL_TOP_K", "30"))  # 召回阶段扩量（方案2）
+    RERANK_TOP_K: int = int(os.getenv("RERANK_TOP_K", "5"))  # rerank 后最终返回数上限
+    RERANK_SCORE_THRESHOLD: float = float(os.getenv("RERANK_SCORE_THRESHOLD", "0.3"))  # rerank 概率阈值（方案3）
+    VECTOR_DISTANCE_THRESHOLD: float = float(os.getenv("VECTOR_DISTANCE_THRESHOLD", "0.5"))  # 纯向量 COSINE 阈值（无 rerank 时用）
     
     # 智谱AI配置
-    ZHIPU_API_KEY: str = os.getenv("ZHIPU_API_KEY", "e757e07a420f4e169649a11e0ab51c5c.fm7u0gWQk3ugic2E")
+    ZHIPU_API_KEY: str = os.getenv("ZHIPU_API_KEY", "")  # 必须从 .env 注入，禁止硬编码
     ZHIPU_API_URL: str = "https://open.bigmodel.cn/api/paas/v4/chat/completions"
     ZHIPU_MODEL: str = "glm-4"
     
