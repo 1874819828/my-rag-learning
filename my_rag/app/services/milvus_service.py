@@ -3,6 +3,7 @@ Milvus向量数据库服务
 """
 import warnings
 warnings.filterwarnings('ignore')
+import os
 from typing import List, Optional
 from sentence_transformers import SentenceTransformer
 from pymilvus import MilvusClient
@@ -12,20 +13,38 @@ class MilvusService:
     """Milvus向量数据库服务封装"""
     
     def __init__(self):
-        self.client = MilvusClient(f"tcp://{settings.MILVUS_HOST}:{settings.MILVUS_PORT}")
         self.collection_name = settings.MILVUS_COLLECTION_NAME
         self.vector_dim = settings.VECTOR_DIM
         self.top_k = settings.TOP_K
-        
+
         # 初始化向量模型（延迟加载，避免服务启动时加载）
         self._embedding_model = None
+
+        # Milvus 连接失败时降级运行（向量检索不可用），不阻塞服务启动
+        self.enabled = True
+        try:
+            self.client = MilvusClient(f"tcp://{settings.MILVUS_HOST}:{settings.MILVUS_PORT}")
+        except Exception as e:
+            self.enabled = False
+            self.client = None
+            print(f"⚠️  Milvus 连接失败，向量检索功能不可用: {str(e)}")
     
     @property
     def embedding_model(self):
         """延迟加载向量模型"""
         if self._embedding_model is None:
+            # 优先使用本地模型路径，避免网络下载
+            local_model_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'models', 'bge-small-zh-v1.5')
+
+            if os.path.exists(local_model_path):
+                print(f"✅ 使用本地嵌入模型: {local_model_path}")
+                model_path = local_model_path
+            else:
+                print("⚠️  本地模型不存在，尝试从 Hugging Face 下载")
+                model_path = 'BAAI/bge-small-zh-v1.5'
+
             self._embedding_model = SentenceTransformer(
-                'BAAI/bge-small-zh-v1.5',
+                model_path,
                 device='cpu',
                 trust_remote_code=True
             )
